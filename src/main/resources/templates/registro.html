@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Tópicos</title>
+</head>
+<body>
+<h2 th:text="${topicoId != null} ? 'Editar tópico' : 'Registrar nuevo tópico'"></h2>
+
+<!-- ✅ Formulario dinámico: registra o actualiza -->
+<form th:action="${topicoId != null} ? @{/topicos/editar/{id}(id=${topicoId})} : @{/topicos}"
+      th:object="${registroTopicoDTO}" method="post">
+
+    <label>Título:</label><br>
+    <input type="text" th:field="*{titulo}" /><br>
+    <span th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></span><br><br>
+
+    <label>Mensaje:</label><br>
+    <textarea th:field="*{mensaje}"></textarea><br>
+    <span th:if="${#fields.hasErrors('mensaje')}" th:errors="*{mensaje}"></span><br><br>
+
+    <label>Autor:</label><br>
+    <input type="text" th:field="*{autor}" /><br>
+    <span th:if="${#fields.hasErrors('autor')}" th:errors="*{autor}"></span><br><br>
+
+    <label>Curso:</label><br>
+    <input type="text" th:field="*{curso}" /><br>
+    <span th:if="${#fields.hasErrors('curso')}" th:errors="*{curso}"></span><br><br>
+
+    <!-- ✅ Botón dinámico -->
+    <button type="submit" th:text="${topicoId != null} ? 'Actualizar' : 'Registrar'"></button>
+</form>
+
+<hr>
+
+<h3>Tópicos registrados</h3>
+<div id="tabla-topicos">Cargando tópicos...</div>
+
+<script>
+    const token = localStorage.getItem("jwt");
+
+    fetch("/api/topicos", {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("No autorizado");
+            return res.json();
+        })
+        .then(topicos => {
+            const rows = topicos.map(topico => `
+            <tr>
+                <td>${topico.id ?? '—'}</td>
+                <td>${topico.titulo ?? '—'}</td>
+                <td>${topico.mensaje ?? '—'}</td>
+                <td>${topico.autor ?? '—'}</td>
+                <td>${topico.curso ?? '—'}</td>
+                <td>${topico.fechaCreacion ? new Date(topico.fechaCreacion).toLocaleString() : '—'}</td>
+                <td>
+                    <a href="/topicos/editar/${topico.id}">Editar</a> |
+                    <form action="/topicos/eliminar/${topico.id}" method="post" style="display:inline;">
+                        <button type="submit" onclick="return confirm('¿Estás seguro de que deseas eliminar este tópico?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+        `).join("");
+
+            document.getElementById("tabla-topicos").innerHTML = `
+            <table border="1" cellpadding="5">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Mensaje</th>
+                        <th>Autor</th>
+                        <th>Curso</th>
+                        <th>Fecha de creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+        })
+        .catch(err => {
+            document.getElementById("tabla-topicos").innerText = "Error al cargar los tópicos.";
+            console.error(err);
+        });
+</script>
+
+</body>
+</html>
